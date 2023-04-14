@@ -11,11 +11,29 @@ export interface FindPoolIdArgs {
 }
 
 export interface CreatePoolArgs {
-  coin0: MakeMoveVecTransaction['objects'][number] | string;
-  coin1: MakeMoveVecTransaction['objects'][number] | string;
-  coin0Amount: string;
-  coin1Amount: string;
-  coin0Type?: Address;
-  coin1Type?: Address;
-  txb?: TransactionBlock;
+  coinA: MakeMoveVecTransaction['objects'][number];
+  coinB: MakeMoveVecTransaction['objects'][number];
+  coinAAmount: string;
+  coinBAmount: string;
+  coinAType: Address;
+  coinBType: Address;
+  txb: TransactionBlock;
+}
+
+export interface SwapTokenX {
+  txb: TransactionBlock;
+  coinX: MakeMoveVecTransaction['objects'][number];
+  coinXAmount: string;
+  coinYMinimumAmount: string;
+  coinXType: Address;
+  coinYType: Address;
+}
+
+export interface SwapTokenY {
+  txb: TransactionBlock;
+  coinY: MakeMoveVecTransaction['objects'][number];
+  coinYAmount: string;
+  coinXMinimumAmount: string;
+  coinXType: Address;
+  coinYType: Address;
 }

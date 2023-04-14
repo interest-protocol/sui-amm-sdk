@@ -1,9 +1,12 @@
 {
-  "name": "sui-sdk",
+  "name": "@interest-protocol/sui-sdk",
   "version": "0.0.1",
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "sdk to interact with interest protocol sui modules",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "npx tsc"
   },
   "repository": {
     "type": "git",

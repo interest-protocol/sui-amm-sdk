@@ -1,5 +1,9 @@
 import { toHEX } from '@mysten/bcs';
-import { JsonRpcProvider, TransactionBlock } from '@mysten/sui.js';
+import {
+  isValidSuiObjectId,
+  JsonRpcProvider,
+  TransactionBlock,
+} from '@mysten/sui.js';
 import invariant from 'tiny-invariant';
 
 import {
@@ -12,7 +16,12 @@ import {
 import { Address } from '@/types';
 import { getReturnValuesFromInspectResults } from '@/utils';
 
-import { CreatePoolArgs, FindPoolIdArgs } from './sdk.types';
+import {
+  CreatePoolArgs,
+  FindPoolIdArgs,
+  SwapTokenX,
+  SwapTokenY,
+} from './sdk.types';
 
 export class SDK {
   constructor(
@@ -62,55 +71,128 @@ export class SDK {
 
   /**
    * @description It returns a {TransactionBlock} to be called
-   * @param txb The user can pass a {TransactionBlock} to chain
-   * @param coin0 An ObjectTransactionArgument or type of the Coin0 on Pool<0,1>
-   * @param coin1 An ObjectTransactionArgument or type of the Coin1 on Pool<0,1>
-   * @param coin1Amount The desired value to add for coin0
-   * @param coin0Amount The desired value to add for coin1
-   * @param coin0Type The type of Coin0, it can be undefined if coin0 is a type
-   * @param coin1Type The type of Coin1, it can be undefined if coin1 is a type
+   * @param txb The {TransactionBlock} that will be returned
+   * @param coinA An ObjectTransactionArgument of Coin0 on Pool<0,1>
+   * @param coinB An ObjectTransactionArgument of Coin1 on Pool<0,1>
+   * @param coinAAmount The desired value to add for coin0
+   * @param coinBAmount The desired value to add for coin1
+   * @param coinAType The type of Coin0
+   * @param coinBType The type of Coin1
+   * @return txb {TransactionBlock}
    */
   public createPoolTransactionBlock({
     txb,
-    coin0,
-    coin1,
-    coin1Amount,
-    coin0Amount,
-    coin0Type,
-    coin1Type,
+    coinA,
+    coinB,
+    coinAAmount,
+    coinBAmount,
+    coinAType,
+    coinBType,
   }: CreatePoolArgs): TransactionBlock {
-    invariant(+coin0Amount > 0, 'Cannot add coin0Amount');
-    invariant(+coin1Amount > 0, 'Cannot add coin1Amount');
-    invariant(coin0, 'Must provide coin0');
+    invariant(+coinAAmount > 0, 'Cannot add coinAAmount');
+    invariant(+coinBAmount > 0, 'Cannot add coinBAmount');
 
-    const isCoin0String = typeof coin0 === 'string';
-    const isCoin1String = typeof coin1 === 'string';
+    invariant(isValidSuiObjectId(coinAType), 'coinAType must be an objectId');
+    invariant(isValidSuiObjectId(coinBType), 'coinBType must be an objectId');
 
-    if (!coin0Type) invariant(isCoin0String, 'coin0 must be an objectId');
-    if (!coin1Type) invariant(isCoin1String, 'coin1 must be an objectId');
-
-    const tx = txb ? txb : new TransactionBlock();
     const objects = OBJECT_RECORD[this.chain];
 
-    tx.moveCall({
+    txb.moveCall({
       target: `${objects.PACKAGE_ID}::interface::create_pool`,
       arguments: [
-        tx.object(objects.DEX_STORAGE_VOLATILE),
-        tx.makeMoveVec({
-          objects: [isCoin0String ? tx.object(coin0) : coin0],
+        txb.object(objects.DEX_STORAGE_VOLATILE),
+        txb.makeMoveVec({
+          objects: [coinA],
         }),
-        tx.makeMoveVec({
-          objects: [isCoin1String ? tx.object(coin1) : coin1],
+        txb.makeMoveVec({
+          objects: [coinB],
         }),
-        tx.pure(coin0Amount),
-        tx.pure(coin1Amount),
+        txb.pure(coinAAmount),
+        txb.pure(coinBAmount),
       ],
-      typeArguments: [
-        isCoin0String ? coin0 : coin0Type!,
-        isCoin1String ? coin1 : coin1Type!,
-      ],
+      typeArguments: [coinAType, coinBType],
     });
 
-    return tx;
+    return txb;
+  }
+
+  /**
+   * @param txb The {TransactionBlock}
+   * @param coinXAmount The amount of coinX to sell
+   * @param coinYMinimumAmount The minimum amount of coinY to receive (slippage)
+   * @param coinX The object of CoinX e.g. txb.gas, txb.pure("objectId")
+   * @param coinXType The coinType of coinX (one being sold)
+   * @param coinYType The coinType of CoinT (one being bought)
+   */
+  public SwapTokenX({
+    txb,
+    coinXAmount,
+    coinYMinimumAmount,
+    coinX,
+    coinXType,
+    coinYType,
+  }: SwapTokenX): TransactionBlock {
+    invariant(+coinXAmount > 0, 'Cannot add coinAAmount');
+
+    invariant(isValidSuiObjectId(coinXType), 'coinAType must be an objectId');
+    invariant(isValidSuiObjectId(coinYType), 'coinBType must be an objectId');
+
+    const objects = OBJECT_RECORD[this.chain];
+
+    txb.moveCall({
+      target: `${objects.PACKAGE_ID}::interface::swap_x`,
+      arguments: [
+        txb.object(objects.DEX_STORAGE_VOLATILE),
+        txb.object(objects.DEX_STORAGE_STABLE),
+        txb.makeMoveVec({
+          objects: [coinX],
+        }),
+        txb.pure(coinXAmount),
+        txb.pure(coinYMinimumAmount),
+      ],
+      typeArguments: [coinXType, coinYType],
+    });
+
+    return txb;
+  }
+
+  /**
+   * @param txb The {TransactionBlock}
+   * @param coinY The object of CoinY e.g. txb.gas, txb.pure("objectId")
+   * @param coinYAmount The amount of coinY to sell
+   * @param coinXMinimumAmount The minimum amount of coinX to receive (slippage)
+   * @param coinXType The coinType of coinX (one being bought)
+   * @param coinYType The coinType of CoinT (one being sold)
+   */
+  public SwapTokenY({
+    txb,
+    coinY,
+    coinYAmount,
+    coinXMinimumAmount,
+    coinXType,
+    coinYType,
+  }: SwapTokenY): TransactionBlock {
+    invariant(+coinYAmount > 0, 'Cannot add coinAAmount');
+
+    invariant(isValidSuiObjectId(coinXType), 'coinAType must be an objectId');
+    invariant(isValidSuiObjectId(coinYType), 'coinBType must be an objectId');
+
+    const objects = OBJECT_RECORD[this.chain];
+
+    txb.moveCall({
+      target: `${objects.PACKAGE_ID}::interface::swap_y`,
+      arguments: [
+        txb.object(objects.DEX_STORAGE_VOLATILE),
+        txb.object(objects.DEX_STORAGE_STABLE),
+        txb.makeMoveVec({
+          objects: [coinY],
+        }),
+        txb.pure(coinYAmount),
+        txb.pure(coinXMinimumAmount),
+      ],
+      typeArguments: [coinXType, coinYType],
+    });
+
+    return txb;
   }
 }

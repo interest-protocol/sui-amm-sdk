@@ -87,7 +87,7 @@ export class SDK {
    * @param coinBType The type of Coin1
    * @return txb {TransactionBlock}
    */
-  public createPoolTransactionBlock({
+  public createPool({
     txb,
     coinA,
     coinB,

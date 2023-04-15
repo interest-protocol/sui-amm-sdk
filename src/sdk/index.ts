@@ -4,7 +4,7 @@ import {
   JsonRpcProvider,
   TransactionBlock,
 } from '@mysten/sui.js';
-import { pathOr } from 'ramda';
+import { mergeDeepRight, pathOr } from 'ramda';
 import invariant from 'tiny-invariant';
 
 import {
@@ -14,24 +14,20 @@ import {
   SUI_TEST_NET_CHAIN,
   ZERO_ADDRESS,
 } from '@/constants';
-import { Address } from '@/types';
+import { Address, DexMarket } from '@/types';
 import {
+  findMarket,
   getCoinsFromPoolType,
   getReturnValuesFromInspectResults,
+  parseRawDEXMarkets,
 } from '@/utils';
 
-import { COINS } from '../constants/coins';
 import { POOLS } from '../constants/pools';
-import {
-  CreatePoolArgs,
-  FindPoolIdArgs,
-  SwapTokenX,
-  SwapTokenY,
-} from './sdk.types';
+import { CreatePoolArgs, FindPoolIdArgs, SwapArgs } from './sdk.types';
 
 export class SDK {
-  public readonly COINS_TYPE: Record<string, string>;
-  public readonly POOLS: Record<string, Record<string, string>>;
+  #POOLS: Record<string, Record<string, string>>;
+
   constructor(
     public readonly provider: JsonRpcProvider,
     public readonly chain: SUI_CHAIN_TYPE = SUI_TEST_NET_CHAIN,
@@ -41,8 +37,7 @@ export class SDK {
       'Invalid network',
     );
 
-    this.COINS_TYPE = COINS[chain];
-    this.POOLS = POOLS[chain];
+    this.#POOLS = POOLS[chain];
   }
 
   /**
@@ -126,42 +121,75 @@ export class SDK {
   }
 
   /**
-   * @param txb The {TransactionBlock}
-   * @param coinXAmount The amount of coinX to sell
-   * @param coinYMinimumAmount The minimum amount of coinY to receive (slippage)
-   * @param coinX The object of CoinX e.g. txb.gas, txb.pure("objectId")
-   * @param coinXType The coinType of coinX (one being sold)
-   * @param coinYType The coinType of CoinT (one being bought)
+   * @param txb The {TransactionBlock} class to chain
+   * @param coinIn The Coin being sold
+   * @param coinInAmount The amount of the coin being sold
+   * @param coinInType The type of the coin being sold
+   * @param coinOutType The type of the coin being bought
+   * @param coinOutMinimumAmount The minimum amount to receive in coinOutType to control slippage
+   * @param useCache It defaults to false. If it is false, we will first fetch the latest pools data. If not, we will use a cache.
    */
-  public SwapTokenX({
+  public async swap({
     txb,
-    coinXAmount,
-    coinYMinimumAmount,
-    coinX,
-    coinXType,
-    coinYType,
-  }: SwapTokenX): TransactionBlock {
-    invariant(+coinXAmount > 0, 'Cannot add coinAAmount');
+    coinIn,
+    coinInAmount,
+    coinInType,
+    coinOutType,
+    coinOutMinimumAmount,
+    useCache = false,
+  }: SwapArgs): Promise<TransactionBlock> {
+    invariant(+coinInAmount > 0, 'Cannot add coinAAmount');
+
+    const data = useCache ? this.#POOLS : await this.getLatestDEXMarkets();
+
+    const path = findMarket({
+      data,
+      network: this.chain,
+      coinInType,
+      coinOutType,
+    });
+
+    invariant(path.length > 0, 'No Market for those coins');
+
+    const firstSwapObject = path[0];
 
     const objects = OBJECT_RECORD[this.chain];
 
+    // no hop swap
+    if (!firstSwapObject.baseTokens.length) {
+      txb.moveCall({
+        target: `${objects.PACKAGE_ID}::interface::${firstSwapObject.functionName}`,
+        typeArguments: firstSwapObject.typeArgs,
+        arguments: [
+          txb.object(objects.DEX_STORAGE_VOLATILE),
+          txb.object(objects.DEX_STORAGE_STABLE),
+          txb.makeMoveVec({
+            objects: [coinIn],
+          }),
+          txb.pure(coinInAmount),
+          txb.pure(coinOutMinimumAmount),
+        ],
+      });
+      return txb;
+    }
+
+    // One Hop Swap
     txb.moveCall({
-      target: `${objects.PACKAGE_ID}::interface::swap_x`,
+      target: `${objects.PACKAGE_ID}::interface::${firstSwapObject.functionName}`,
+      typeArguments: firstSwapObject.typeArgs,
       arguments: [
         txb.object(objects.DEX_STORAGE_VOLATILE),
         txb.object(objects.DEX_STORAGE_STABLE),
         txb.makeMoveVec({
-          objects: [coinX],
+          objects: [coinIn],
         }),
-        txb.pure(coinXAmount),
-        txb.pure(coinYMinimumAmount),
+        txb.pure(coinInAmount),
+        txb.pure(coinOutMinimumAmount),
       ],
-      typeArguments: [coinXType, coinYType],
     });
 
     return txb;
   }
-
   /**
    * @param txb The {TransactionBlock}
    * @param coinY The object of CoinY e.g. txb.gas, txb.pure("objectId")
@@ -170,34 +198,6 @@ export class SDK {
    * @param coinXType The coinType of coinX (one being bought)
    * @param coinYType The coinType of CoinT (one being sold)
    */
-  public SwapTokenY({
-    txb,
-    coinY,
-    coinYAmount,
-    coinXMinimumAmount,
-    coinXType,
-    coinYType,
-  }: SwapTokenY): TransactionBlock {
-    invariant(+coinYAmount > 0, 'Cannot add coinAAmount');
-
-    const objects = OBJECT_RECORD[this.chain];
-
-    txb.moveCall({
-      target: `${objects.PACKAGE_ID}::interface::swap_y`,
-      arguments: [
-        txb.object(objects.DEX_STORAGE_VOLATILE),
-        txb.object(objects.DEX_STORAGE_STABLE),
-        txb.makeMoveVec({
-          objects: [coinY],
-        }),
-        txb.pure(coinYAmount),
-        txb.pure(coinXMinimumAmount),
-      ],
-      typeArguments: [coinXType, coinYType],
-    });
-
-    return txb;
-  }
 
   /**
    * @description The coin types do not need to be ordered. The SDK does not know every single pool in the DEX
@@ -205,7 +205,33 @@ export class SDK {
    * @param coinBType
    */
   public getSortedPoolCoins(coinAType: string, coinBType: string) {
-    const poolType = pathOr(null, [coinAType, coinBType], this.POOLS);
+    const poolType = pathOr(null, [coinAType, coinBType], this.#POOLS);
     return poolType ? getCoinsFromPoolType(poolType) : null;
+  }
+
+  public getCachedMarkets(): DexMarket {
+    return this.#POOLS;
+  }
+
+  private async getLatestDEXMarkets(): Promise<DexMarket> {
+    const objects = OBJECT_RECORD[this.chain];
+
+    const [volatileData, stableData] = await Promise.all([
+      this.provider.getDynamicFields({
+        parentId: objects.VOLATILE_POOLS_OBJECT_ID,
+      }),
+      this.provider.getDynamicFields({
+        parentId: objects.STABLE_POOLS_OBJECT_ID,
+      }),
+    ]);
+
+    const volatileMarkets = parseRawDEXMarkets(volatileData.data, false);
+    const stableMarkets = parseRawDEXMarkets(stableData.data, true);
+
+    const dexMarkets = mergeDeepRight(volatileMarkets, stableMarkets);
+
+    this.#POOLS = dexMarkets;
+
+    return dexMarkets;
   }
 }

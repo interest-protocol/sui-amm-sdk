@@ -18,20 +18,12 @@ export interface CreatePoolArgs {
   txb: TransactionBlock;
 }
 
-export interface SwapTokenX {
+export interface SwapArgs {
   txb: TransactionBlock;
-  coinX: MakeMoveVecTransaction['objects'][number];
-  coinXAmount: string;
-  coinYMinimumAmount: string;
-  coinXType: Address;
-  coinYType: Address;
-}
-
-export interface SwapTokenY {
-  txb: TransactionBlock;
-  coinY: MakeMoveVecTransaction['objects'][number];
-  coinYAmount: string;
-  coinXMinimumAmount: string;
-  coinXType: Address;
-  coinYType: Address;
+  coinIn: MakeMoveVecTransaction['objects'][number];
+  coinInAmount: string;
+  coinOutMinimumAmount: string;
+  coinInType: Address;
+  coinOutType: Address;
+  useCache?: boolean;
 }

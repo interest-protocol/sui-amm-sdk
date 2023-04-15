@@ -47,3 +47,10 @@ export const OBJECT_RECORD = {
       '0x66f4dcd66de760037ac39f5fcfd216d915e35af4aaa19ece65f5b7154acd5d88',
   },
 };
+
+export enum DexFunctions {
+  SwapX = 'swap_x',
+  SwapY = 'swap_y',
+  OneHopSwap = 'one_hop_swap',
+  TwoHopSwap = 'two_hop_swap',
+}

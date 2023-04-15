@@ -9,8 +9,8 @@ export interface FindPoolIdArgs {
 }
 
 export interface CreatePoolArgs {
-  coinA: MakeMoveVecTransaction['objects'][number];
-  coinB: MakeMoveVecTransaction['objects'][number];
+  coinAList: MakeMoveVecTransaction['objects'][number][];
+  coinBList: MakeMoveVecTransaction['objects'][number][];
   coinAAmount: string;
   coinBAmount: string;
   coinAType: Address;
@@ -20,7 +20,7 @@ export interface CreatePoolArgs {
 
 export interface SwapArgs {
   txb: TransactionBlock;
-  coinIn: MakeMoveVecTransaction['objects'][number];
+  coinInList: MakeMoveVecTransaction['objects'][number][];
   coinInAmount: string;
   coinOutMinimumAmount: string;
   coinInType: Address;

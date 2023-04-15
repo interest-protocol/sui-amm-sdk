@@ -89,8 +89,8 @@ export class SDK {
    */
   public createPool({
     txb,
-    coinA,
-    coinB,
+    coinAList,
+    coinBList,
     coinAAmount,
     coinBAmount,
     coinAType,
@@ -106,10 +106,10 @@ export class SDK {
       arguments: [
         txb.object(objects.DEX_STORAGE_VOLATILE),
         txb.makeMoveVec({
-          objects: [coinA],
+          objects: coinAList,
         }),
         txb.makeMoveVec({
-          objects: [coinB],
+          objects: coinBList,
         }),
         txb.pure(coinAAmount),
         txb.pure(coinBAmount),
@@ -131,7 +131,7 @@ export class SDK {
    */
   public async swap({
     txb,
-    coinIn,
+    coinInList,
     coinInAmount,
     coinInType,
     coinOutType,
@@ -164,7 +164,7 @@ export class SDK {
           txb.object(objects.DEX_STORAGE_VOLATILE),
           txb.object(objects.DEX_STORAGE_STABLE),
           txb.makeMoveVec({
-            objects: [coinIn],
+            objects: coinInList,
           }),
           txb.pure(coinInAmount),
           txb.pure(coinOutMinimumAmount),
@@ -181,7 +181,7 @@ export class SDK {
         txb.object(objects.DEX_STORAGE_VOLATILE),
         txb.object(objects.DEX_STORAGE_STABLE),
         txb.makeMoveVec({
-          objects: [coinIn],
+          objects: coinInList,
         }),
         txb.pure(coinInAmount),
         txb.pure(coinOutMinimumAmount),

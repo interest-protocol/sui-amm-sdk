@@ -45,7 +45,7 @@
   "bugs": {
     "url": "https://github.com/interest-protocol/sui-interest-sdk/issues"
   },
-  "homepage": "https://github.com/interest-protocol/sui-interest-sdk#readme",
+  "homepage": "https://docs.interestprotocol.com/developers/sui/sdk",
   "devDependencies": {
     "@commitlint/cli": "^17.5.1",
     "@commitlint/config-conventional": "^17.4.4",
@@ -60,7 +60,6 @@
     "eslint-plugin-simple-import-sort": "^10.0.0",
     "eslint-plugin-unicorn": "^46.0.0",
     "jest": "^29.5.0",
-    "nodemon": "^2.0.22",
     "prettier": "^2.8.7",
     "resolve-tspaths": "^0.8.13",
     "rimraf": "^5.0.0",

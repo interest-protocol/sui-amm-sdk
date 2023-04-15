@@ -1,5 +1,4 @@
-import { SUI_CHAIN_TYPE } from '@/constants';
-import { DexFunctions } from '@/constants';
+import { DexFunctions, SUI_CHAIN_TYPE } from '@/constants';
 
 export type Address = `0x${string}`;
 

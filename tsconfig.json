@@ -114,6 +114,6 @@
     "outDir": "dist",
     "declaration": true
   },
-  "exclude": ["node_modules", "dist"],
-  "include": ["**/*.ts"]
+  "exclude": ["node_modules"],
+  "include": ["./src/**/*.ts"]
 }

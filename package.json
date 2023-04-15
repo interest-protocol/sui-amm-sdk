@@ -1,6 +1,6 @@
 {
   "name": "@interest-protocol/sui-sdk",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "publishConfig": {
@@ -8,7 +8,8 @@
   },
   "description": "sdk to interact with interest protocol sui modules",
   "scripts": {
-    "build": "npx tsc"
+    "build": "rimraf dist && tsc --project tsconfig.json && tsc-alias -p tsconfig.json",
+    "postinstall": "rimraf dist && tsc --project tsconfig.json && tsc-alias -p tsconfig.json"
   },
   "repository": {
     "type": "git",

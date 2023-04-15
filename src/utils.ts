@@ -17,3 +17,8 @@ export const getReturnValuesFromInspectResults = (
   const result = head(returnValues);
   return result ? result : null;
 };
+
+export const getCoinsFromPoolType = (poolType: string) => ({
+  coinXType: poolType.split('<')[1].split(',')[0].trim(),
+  coinYType: poolType.split('<')[1].split(',')[1].split('>')[0].trim(),
+});

@@ -1,9 +1,10 @@
 import { toHEX } from '@mysten/bcs';
 import {
-  isValidSuiObjectId,
+  isValidSuiAddress,
   JsonRpcProvider,
   TransactionBlock,
 } from '@mysten/sui.js';
+import { pathOr } from 'ramda';
 import invariant from 'tiny-invariant';
 
 import {
@@ -14,8 +15,13 @@ import {
   ZERO_ADDRESS,
 } from '@/constants';
 import { Address } from '@/types';
-import { getReturnValuesFromInspectResults } from '@/utils';
+import {
+  getCoinsFromPoolType,
+  getReturnValuesFromInspectResults,
+} from '@/utils';
 
+import { COINS } from '../constants/coins';
+import { POOLS } from '../constants/pools';
 import {
   CreatePoolArgs,
   FindPoolIdArgs,
@@ -24,6 +30,8 @@ import {
 } from './sdk.types';
 
 export class SDK {
+  public readonly COINS_TYPE: Record<string, string>;
+  public readonly POOLS: Record<string, Record<string, string>>;
   constructor(
     public readonly provider: JsonRpcProvider,
     public readonly chain: SUI_CHAIN_TYPE = SUI_TEST_NET_CHAIN,
@@ -32,6 +40,9 @@ export class SDK {
       chain == SUI_TEST_NET_CHAIN || chain == SUI_DEV_NET_CHAIN,
       'Invalid network',
     );
+
+    this.COINS_TYPE = COINS[chain];
+    this.POOLS = POOLS[chain];
   }
 
   /**
@@ -45,6 +56,7 @@ export class SDK {
     tokenBType,
     account = ZERO_ADDRESS,
   }: FindPoolIdArgs): Promise<Address | null> {
+    invariant(isValidSuiAddress(account), 'Invalid Sui Address');
     const txb = new TransactionBlock();
 
     const objects = OBJECT_RECORD[this.chain];
@@ -92,9 +104,6 @@ export class SDK {
     invariant(+coinAAmount > 0, 'Cannot add coinAAmount');
     invariant(+coinBAmount > 0, 'Cannot add coinBAmount');
 
-    invariant(isValidSuiObjectId(coinAType), 'coinAType must be an objectId');
-    invariant(isValidSuiObjectId(coinBType), 'coinBType must be an objectId');
-
     const objects = OBJECT_RECORD[this.chain];
 
     txb.moveCall({
@@ -134,9 +143,6 @@ export class SDK {
   }: SwapTokenX): TransactionBlock {
     invariant(+coinXAmount > 0, 'Cannot add coinAAmount');
 
-    invariant(isValidSuiObjectId(coinXType), 'coinAType must be an objectId');
-    invariant(isValidSuiObjectId(coinYType), 'coinBType must be an objectId');
-
     const objects = OBJECT_RECORD[this.chain];
 
     txb.moveCall({
@@ -174,9 +180,6 @@ export class SDK {
   }: SwapTokenY): TransactionBlock {
     invariant(+coinYAmount > 0, 'Cannot add coinAAmount');
 
-    invariant(isValidSuiObjectId(coinXType), 'coinAType must be an objectId');
-    invariant(isValidSuiObjectId(coinYType), 'coinBType must be an objectId');
-
     const objects = OBJECT_RECORD[this.chain];
 
     txb.moveCall({
@@ -194,5 +197,15 @@ export class SDK {
     });
 
     return txb;
+  }
+
+  /**
+   * @description The coin types do not need to be ordered. The SDK does not know every single pool in the DEX
+   * @param coinAType
+   * @param coinBType
+   */
+  public getSortedPoolCoins(coinAType: string, coinBType: string) {
+    const poolType = pathOr(null, [coinAType, coinBType], this.POOLS);
+    return poolType ? getCoinsFromPoolType(poolType) : null;
   }
 }

@@ -1,6 +1,6 @@
 import { DexFunctions, SUI_CHAIN_TYPE } from '@/constants';
 
-export type Address = `0x${string}`;
+export type Address = string;
 
 export type DexMarket = Record<string, Record<string, string>>;
 

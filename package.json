@@ -1,13 +1,32 @@
 {
   "name": "@interest-protocol/sui-sdk",
   "version": "0.0.5",
-  "main": "src/index.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
   "publishConfig": {
     "access": "public"
   },
   "description": "sdk to interact with interest protocol sui modules",
   "scripts": {
-    "build": "rimraf dist && tsc --project tsconfig.json && tsc-alias -p tsconfig.json",
+    "build:tsup": "tsup ./src/index.ts --format esm,cjs --sourcemap",
+    "build:types": "tsc --build && tsc-alias -p tsconfig.json",
+    "build": "npm run build:types && npm run build:tsup",
+    "prepublishOnly": "npm run build",
     "postinstall": "rimraf dist && tsc --project tsconfig.json && tsc-alias -p tsconfig.json"
   },
   "repository": {
@@ -49,6 +68,7 @@
     "tsc-alias": "^1.8.5",
     "tsconfig-paths": "^4.2.0",
     "tsconfig-paths-jest": "^0.0.1",
+    "tsup": "^6.7.0",
     "typescript": "^5.0.4"
   },
   "dependencies": {

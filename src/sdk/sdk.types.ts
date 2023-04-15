@@ -1,6 +1,4 @@
 import { MakeMoveVecTransaction, TransactionBlock } from '@mysten/sui.js';
-import { ObjectTransactionArgument } from '@mysten/sui.js/src';
-import { WellKnownEncoding } from '@mysten/sui.js/src/builder/utils';
 
 import { Address } from '@/types';
 

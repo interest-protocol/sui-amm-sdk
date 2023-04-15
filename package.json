@@ -26,8 +26,7 @@
     "build:tsup": "tsup ./src/index.ts --format esm,cjs --sourcemap",
     "build:types": "tsc --build && tsc-alias -p tsconfig.json",
     "build": "npm run build:types && npm run build:tsup",
-    "prepublishOnly": "npm run build",
-    "postinstall": "rimraf dist && tsc --project tsconfig.json && tsc-alias -p tsconfig.json"
+    "prepublishOnly": "npm run build"
   },
   "repository": {
     "type": "git",

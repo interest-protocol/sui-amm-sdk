@@ -137,10 +137,15 @@ export class SDK {
     coinOutType,
     coinOutMinimumAmount,
     useCache = false,
+    dexMarkets,
   }: SwapArgs): Promise<TransactionBlock> {
     invariant(+coinInAmount > 0, 'Cannot add coinAAmount');
 
-    const data = useCache ? this.#POOLS : await this.getLatestDEXMarkets();
+    const data = dexMarkets
+      ? dexMarkets
+      : useCache
+      ? this.#POOLS
+      : await this.getLatestDEXMarkets();
 
     const path = findMarket({
       data,

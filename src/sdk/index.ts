@@ -195,14 +195,6 @@ export class SDK {
 
     return txb;
   }
-  /**
-   * @param txb The {TransactionBlock}
-   * @param coinY The object of CoinY e.g. txb.gas, txb.pure("objectId")
-   * @param coinYAmount The amount of coinY to sell
-   * @param coinXMinimumAmount The minimum amount of coinX to receive (slippage)
-   * @param coinXType The coinType of coinX (one being bought)
-   * @param coinYType The coinType of CoinT (one being sold)
-   */
 
   /**
    * @description The coin types do not need to be ordered. The SDK does not know every single pool in the DEX

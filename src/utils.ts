@@ -1,11 +1,25 @@
-import { DevInspectResults } from '@mysten/sui.js';
-import { DynamicFieldInfo } from '@mysten/sui.js/src/types/dynamic_fields';
-import { head, isEmpty, pathOr, propOr } from 'ramda';
+import {
+  DevInspectResults,
+  JsonRpcProvider,
+  SuiObjectResponse,
+} from '@mysten/sui.js';
+import {
+  DynamicFieldInfo,
+  DynamicFieldPage,
+} from '@mysten/sui.js/src/types/dynamic_fields';
+import { head, isEmpty, last, pathOr, propOr } from 'ramda';
 
-import { DexFunctions } from '@/constants';
+import { DEFAULT_POOL, DexFunctions, Pool } from '@/constants';
 
 import { DEX_BASE_TOKEN_ARRAY } from './constants/coins';
-import { DexMarket, FindMarketArgs, SwapPathObject } from './types';
+import {
+  DexMarket,
+  FindMarketArgs,
+  FindSwapAmountOutput,
+  GetAllDynamicFieldsInternalArgs,
+  GetRemoveLiquidityAmountsFromDevInspectArgs,
+  SwapPathObject,
+} from './types';
 
 export const getReturnValuesFromInspectResults = (
   x: DevInspectResults,
@@ -25,10 +39,15 @@ export const getReturnValuesFromInspectResults = (
   return result ? result : null;
 };
 
-export const getCoinsFromPoolType = (poolType: string) => ({
-  coinXType: poolType.split('<')[1].split(',')[0].trim(),
-  coinYType: poolType.split('<')[1].split(',')[1].split('>')[0].trim(),
-});
+export const getCoinsFromPoolType = (poolType: string) => {
+  const type = poolType.split('Pool');
+  const poolArgs = type[1];
+  const tokens = poolArgs.split(',');
+  return {
+    coinXType: tokens[1].trim(),
+    coinYType: tokens[2].split('>')[0].trim(),
+  };
+};
 
 export const addCoinTypeToTokenType = (x: string): string =>
   `0x2::coin::Coin<${x}>`;
@@ -95,23 +114,14 @@ export const findMarket = ({
   );
 };
 
-export const parseRawDEXMarkets = (
-  data: DynamicFieldInfo[],
-  isStable: boolean,
-): DexMarket => {
+export const parseRawDEXMarkets = (data: DynamicFieldInfo[]): DexMarket => {
   if (!data) return {};
 
   return data.reduce((acc, elem) => {
-    const type = elem.objectType.split(isStable ? 'SPool' : 'VPool');
+    const { coinXType, coinYType } = getCoinsFromPoolType(elem.objectType);
 
-    const tokensTypes = type[1].split(',');
-    const tokenInType = tokensTypes[0].trim().substring(1);
-    const tokenOutType = tokensTypes[1]
-      .trim()
-      .substring(0, tokensTypes[1].length - 2);
-
-    const parsedTokenIn = addCoinTypeToTokenType(tokenInType);
-    const parsedTokenOut = addCoinTypeToTokenType(tokenOutType);
+    const parsedTokenIn = addCoinTypeToTokenType(coinXType);
+    const parsedTokenOut = addCoinTypeToTokenType(coinYType);
 
     if (!acc[parsedTokenIn]) acc[parsedTokenIn] = {};
     if (!acc[parsedTokenOut]) acc[parsedTokenOut] = {};
@@ -128,4 +138,119 @@ export const parseRawDEXMarkets = (
       },
     };
   }, {} as DexMarket);
+};
+
+const getAllDynamicFieldsInternal = async ({
+  data,
+  cursor,
+  parentId,
+  provider,
+}: GetAllDynamicFieldsInternalArgs): Promise<DynamicFieldPage['data']> => {
+  const newData = await provider.getDynamicFields({
+    parentId,
+    cursor: cursor,
+  });
+
+  const nextData = data.concat(newData.data);
+
+  if (!newData.hasNextPage) return nextData;
+
+  return getAllDynamicFieldsInternal({
+    data: nextData,
+    cursor: newData.nextCursor,
+    parentId,
+    provider,
+  });
+};
+
+export const getAllDynamicFields = async (
+  provider: JsonRpcProvider,
+  parentId: string,
+) => {
+  const data = await provider.getDynamicFields({
+    parentId,
+  });
+
+  return data.hasNextPage
+    ? getAllDynamicFieldsInternal({
+        data: data.data,
+        cursor: data.nextCursor,
+        parentId,
+        provider,
+      })
+    : data.data;
+};
+
+export const findSwapAmountOutput = ({
+  data,
+  packageId,
+}: FindSwapAmountOutput) => {
+  if (!data) return 0;
+  if (!data.events.length) return 0;
+
+  // no hop swap
+
+  const lastEvent = last(data.events);
+
+  if (lastEvent?.packageId !== packageId) return 0;
+
+  return (
+    pathOr(null, ['parsedJson', 'coin_x_out'], lastEvent) ??
+    pathOr(0, ['parsedJson', 'coin_y_out'], lastEvent)
+  );
+};
+
+export const processPool = (data: undefined | SuiObjectResponse): Pool => {
+  if (!data) return DEFAULT_POOL;
+
+  const poolType: string = pathOr('', ['data', 'type'], data);
+
+  const stable = poolType.includes('Stable');
+
+  if (!poolType) return DEFAULT_POOL;
+  const { coinXType: token0Type, coinYType: token1Type } =
+    getCoinsFromPoolType(poolType);
+
+  return {
+    token0Balance: pathOr('', ['data', 'content', 'fields', 'balance_x'], data),
+    token1Balance: pathOr('', ['data', 'content', 'fields', 'balance_y'], data),
+    lpCoinSupply: pathOr(
+      '',
+      ['data', 'content', 'fields', 'lp_coin_supply', 'fields', 'value'],
+      data,
+    ),
+    lpCoin: pathOr(
+      '',
+      ['data', 'content', 'fields', 'lp_coin_supply', 'type'],
+      data,
+    ),
+    poolType,
+    token0Type,
+    token1Type,
+    stable,
+  };
+};
+
+export const getRemoveLiquidityAmountsFromDevInspect = ({
+  packageId,
+  coinAType,
+  coinBType,
+  results,
+}: GetRemoveLiquidityAmountsFromDevInspectArgs) => {
+  if (!results) return null;
+  const events = results.events;
+
+  if (!events || !events.length) return null;
+
+  const firstEvent = events[0];
+
+  if (firstEvent.packageId !== packageId) return null;
+
+  const coinAKey = coinAType > coinBType ? 'coin_y_out' : 'coin_x_out';
+  const coinBKey = coinAType > coinBType ? 'coin_x_out' : 'coin_y_out';
+
+  return {
+    [coinAType]: pathOr('0', ['parsedJson', coinAKey], firstEvent),
+    [coinBType]: pathOr('0', ['parsedJson', coinBKey], firstEvent),
+  };
 };

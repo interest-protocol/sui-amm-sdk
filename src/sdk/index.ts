@@ -228,7 +228,7 @@ export class SDK {
     coinOutType,
     useCache = false,
     dexMarkets,
-  }: GetCoinOutAmountArgs): Promise<number> {
+  }: GetCoinOutAmountArgs) {
     invariant(+coinInAmount > 0, 'Cannot add coinAAmount');
 
     const data = dexMarkets
@@ -301,10 +301,13 @@ export class SDK {
       sender: ZERO_ADDRESS,
     });
 
-    return findSwapAmountOutput({
-      data: response,
-      packageId: objects.DEX_PACKAGE_ID,
-    });
+    return {
+      amounts: findSwapAmountOutput({
+        data: response,
+        packageId: objects.DEX_PACKAGE_ID,
+      }),
+      response,
+    };
   }
 
   /**

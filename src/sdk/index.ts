@@ -274,10 +274,13 @@ export class SDK {
         sender: ZERO_ADDRESS,
       });
 
-      return findSwapAmountOutput({
-        data: response,
-        packageId: objects.DEX_PACKAGE_ID,
-      });
+      return {
+        amounts: findSwapAmountOutput({
+          data: response,
+          packageId: objects.DEX_PACKAGE_ID,
+        }),
+        response,
+      };
     }
 
     // One-hop Swap

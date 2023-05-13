@@ -275,11 +275,11 @@ export class SDK {
       });
 
       return {
-        amounts: findSwapAmountOutput({
+        parsedData: findSwapAmountOutput({
           data: response,
           packageId: objects.DEX_PACKAGE_ID,
         }),
-        response,
+        data: response,
       };
     }
 
@@ -305,11 +305,11 @@ export class SDK {
     });
 
     return {
-      amounts: findSwapAmountOutput({
+      parsedData: findSwapAmountOutput({
         data: response,
         packageId: objects.DEX_PACKAGE_ID,
       }),
-      response,
+      data: response,
     };
   }
 
@@ -426,10 +426,7 @@ export class SDK {
     lpCoinList,
     lpCoinAmount,
     account = ZERO_ADDRESS,
-  }: GetRemoveLiquidityCoinsAmountsOutArgs): Promise<Record<
-    string,
-    string
-  > | null> {
+  }: GetRemoveLiquidityCoinsAmountsOutArgs) {
     const objects = OBJECT_RECORD[this.network];
 
     txb.moveCall({
@@ -456,12 +453,15 @@ export class SDK {
       sender: account,
     });
 
-    return getRemoveLiquidityAmountsFromDevInspect({
-      packageId: objects.DEX_PACKAGE_ID,
-      results: data,
-      coinAType,
-      coinBType,
-    });
+    return {
+      data,
+      parsedData: getRemoveLiquidityAmountsFromDevInspect({
+        packageId: objects.DEX_PACKAGE_ID,
+        results: data,
+        coinAType,
+        coinBType,
+      }),
+    };
   }
 
   /**

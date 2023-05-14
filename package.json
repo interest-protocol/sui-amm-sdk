@@ -1,6 +1,6 @@
 {
   "name": "@interest-protocol/sui-sdk",
-  "version": "2.7.0",
+  "version": "2.8.0",
   "files": [
     "dist"
   ],

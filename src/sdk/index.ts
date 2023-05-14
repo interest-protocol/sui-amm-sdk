@@ -494,7 +494,7 @@ export class SDK {
     return processPool(data);
   }
 
-  private async getLatestDEXMarkets(): Promise<DexMarket> {
+  public async getLatestDEXMarkets(): Promise<DexMarket> {
     const objects = OBJECT_RECORD[this.network];
 
     const poolsDataArray = await getAllDynamicFields(

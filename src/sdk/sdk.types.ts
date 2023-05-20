@@ -31,8 +31,6 @@ export interface SwapArgs {
 }
 
 export interface GetCoinOutAmountArgs {
-  txb: TransactionBlock;
-  coinInList: MakeMoveVecTransaction['objects'][number][];
   coinInAmount: string;
   coinInType: Address;
   coinOutType: Address;

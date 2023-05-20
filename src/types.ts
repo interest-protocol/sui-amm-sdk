@@ -28,11 +28,6 @@ export interface GetAllDynamicFieldsInternalArgs {
   provider: JsonRpcProvider;
 }
 
-export interface FindSwapAmountOutput {
-  packageId: string;
-  data: DevInspectResults | undefined;
-}
-
 export interface GetRemoveLiquidityAmountsFromDevInspectArgs {
   packageId: string;
   results: DevInspectResults | undefined;

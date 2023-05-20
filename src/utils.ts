@@ -7,7 +7,7 @@ import {
   DynamicFieldInfo,
   DynamicFieldPage,
 } from '@mysten/sui.js/src/types/dynamic_fields';
-import { head, isEmpty, last, pathOr, propOr } from 'ramda';
+import { head, isEmpty, pathOr, propOr } from 'ramda';
 
 import { DEFAULT_POOL, DexFunctions, Pool } from '@/constants';
 
@@ -15,7 +15,6 @@ import { DEX_BASE_TOKEN_ARRAY } from './constants/coins';
 import {
   DexMarket,
   FindMarketArgs,
-  FindSwapAmountOutput,
   GetAllDynamicFieldsInternalArgs,
   GetRemoveLiquidityAmountsFromDevInspectArgs,
   SwapPathObject,
@@ -179,25 +178,6 @@ export const getAllDynamicFields = async (
         provider,
       })
     : data.data;
-};
-
-export const findSwapAmountOutput = ({
-  data,
-  packageId,
-}: FindSwapAmountOutput) => {
-  if (!data) return 0;
-  if (!data.events.length) return 0;
-
-  // no hop swap
-
-  const lastEvent = last(data.events);
-
-  if (lastEvent?.packageId !== packageId) return 0;
-
-  return (
-    pathOr(null, ['parsedJson', 'coin_x_out'], lastEvent) ??
-    pathOr(0, ['parsedJson', 'coin_y_out'], lastEvent)
-  );
 };
 
 export const processPool = (data: undefined | SuiObjectResponse): Pool => {

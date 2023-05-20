@@ -4,16 +4,21 @@ import {
   JsonRpcProvider,
   TransactionBlock,
 } from '@mysten/sui.js';
-import { SUI_CLOCK_OBJECT_ID } from '@mysten/sui.js';
+import { bcs, SUI_CLOCK_OBJECT_ID } from '@mysten/sui.js';
 import { pathOr } from 'ramda';
 import invariant from 'tiny-invariant';
 
-import { Network, OBJECT_RECORD, Pool, ZERO_ADDRESS } from '@/constants';
+import {
+  DEX_FUNCTION_TO_GET_AMOUNT_FUNCTION_MAP,
+  Network,
+  OBJECT_RECORD,
+  Pool,
+  ZERO_ADDRESS,
+} from '@/constants';
 import { STABLE, VOLATILE } from '@/constants/coins';
 import { Address, DexMarket } from '@/types';
 import {
   findMarket,
-  findSwapAmountOutput,
   getAllDynamicFields,
   getCoinsFromPoolType,
   getRemoveLiquidityAmountsFromDevInspect,
@@ -212,8 +217,6 @@ export class SDK {
 
   /**
    * @description It returns the amount of the coinOutType from swapping the amount of coin type in
-   * @param txb The {TransactionBlock} class to chain
-   * @param coinInList An Array of objects being sold Coin
    * @param coinInAmount The amount of the coin being sold
    * @param coinInType The type of the coin being sold
    * @param coinOutType The type of the coin being bought
@@ -221,14 +224,12 @@ export class SDK {
    * @param dexMarkets An object of Pools
    */
   public async getSwapCoinOutAmount({
-    txb,
-    coinInList,
     coinInAmount,
     coinInType,
     coinOutType,
     useCache = false,
     dexMarkets,
-  }: GetCoinOutAmountArgs) {
+  }: GetCoinOutAmountArgs): Promise<number> {
     invariant(+coinInAmount > 0, 'Cannot add coinAAmount');
 
     const data = dexMarkets
@@ -250,22 +251,19 @@ export class SDK {
 
     const objects = OBJECT_RECORD[this.network];
 
-    const nowTime = new Date().getTime();
-
+    const txb = new TransactionBlock();
     // no hop swap
     if (!firstSwapObject.baseTokens.length) {
       txb.moveCall({
-        target: `${objects.DEX_PACKAGE_ID}::interface::${firstSwapObject.functionName}`,
+        target: `${
+          objects.DEX_GET_AMOUNT_INTERFACE_PACKAGE_ID
+        }::dex_get_amount_interface::${
+          DEX_FUNCTION_TO_GET_AMOUNT_FUNCTION_MAP[firstSwapObject.functionName]
+        }`,
         typeArguments: firstSwapObject.typeArgs,
         arguments: [
           txb.object(objects.DEX_CORE_STORAGE),
-          txb.object(SUI_CLOCK_OBJECT_ID),
-          txb.makeMoveVec({
-            objects: coinInList,
-          }),
           txb.pure(coinInAmount),
-          txb.pure('0'),
-          txb.pure((nowTime + 1000 * 60 * 1000).toString()),
         ],
       });
 
@@ -273,44 +271,33 @@ export class SDK {
         transactionBlock: txb,
         sender: ZERO_ADDRESS,
       });
+      const result = getReturnValuesFromInspectResults(response);
 
-      return {
-        parsedData: findSwapAmountOutput({
-          data: response,
-          packageId: objects.DEX_PACKAGE_ID,
-        }),
-        data: response,
-      };
+      if (!result) return 0;
+
+      return bcs.de(result[1], Uint8Array.from(result[0])) as number;
     }
 
     // One-hop Swap
     txb.moveCall({
-      target: `${objects.DEX_PACKAGE_ID}::interface::${firstSwapObject.functionName}`,
+      target: `${
+        objects.DEX_GET_AMOUNT_INTERFACE_PACKAGE_ID
+      }::dex_get_amount_interface::${
+        DEX_FUNCTION_TO_GET_AMOUNT_FUNCTION_MAP[firstSwapObject.functionName]
+      }`,
       typeArguments: firstSwapObject.typeArgs,
-      arguments: [
-        txb.object(objects.DEX_CORE_STORAGE),
-        txb.object(SUI_CLOCK_OBJECT_ID),
-        txb.makeMoveVec({
-          objects: coinInList,
-        }),
-        txb.pure(coinInAmount),
-        txb.pure('0'),
-        txb.pure((nowTime + 1000 * 60 * 1000).toString()),
-      ],
+      arguments: [txb.object(objects.DEX_CORE_STORAGE), txb.pure(coinInAmount)],
     });
 
     const response = await this.provider.devInspectTransactionBlock({
       transactionBlock: txb,
       sender: ZERO_ADDRESS,
     });
+    const result = getReturnValuesFromInspectResults(response);
 
-    return {
-      parsedData: findSwapAmountOutput({
-        data: response,
-        packageId: objects.DEX_PACKAGE_ID,
-      }),
-      data: response,
-    };
+    if (!result) return 0;
+
+    return bcs.de(result[1], Uint8Array.from(result[0])) as number;
   }
 
   /**

@@ -21,7 +21,7 @@ import {
 
 export const getReturnValuesFromInspectResults = (
   x: DevInspectResults,
-): [number[], string] | null => {
+): Array<[number[], string]> | null => {
   const results = propOr([], 'results', x) as DevInspectResults['results'];
 
   if (!results?.length) return null;
@@ -32,9 +32,7 @@ export const getReturnValuesFromInspectResults = (
 
   const returnValues = firstElem?.returnValues;
 
-  if (!returnValues) return null;
-  const result = head(returnValues);
-  return result ? result : null;
+  return returnValues ? returnValues : null;
 };
 
 export const getCoinsFromPoolType = (poolType: string) => {

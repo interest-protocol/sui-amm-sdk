@@ -83,7 +83,7 @@ export class SDK {
 
     if (!data || !data.length) return null;
 
-    return `0x${toHEX(Uint8Array.from(data[0]))}`;
+    return `0x${toHEX(Uint8Array.from(data[0][0]))}`;
   }
 
   /**
@@ -269,9 +269,11 @@ export class SDK {
         transactionBlock: txb,
         sender: ZERO_ADDRESS,
       });
-      const result = getReturnValuesFromInspectResults(response);
+      const resultArray = getReturnValuesFromInspectResults(response);
 
-      if (!result) return 0;
+      if (!resultArray || !resultArray.length) return 0;
+
+      const result = resultArray[0];
 
       return bcs.de(result[1], Uint8Array.from(result[0])) as number;
     }
@@ -289,9 +291,11 @@ export class SDK {
       transactionBlock: txb,
       sender: ZERO_ADDRESS,
     });
-    const result = getReturnValuesFromInspectResults(response);
+    const resultArray = getReturnValuesFromInspectResults(response);
 
-    if (!result) return 0;
+    if (!resultArray || !resultArray.length) return 0;
+
+    const result = resultArray[0];
 
     return bcs.de(result[1], Uint8Array.from(result[0])) as number;
   }
@@ -388,15 +392,19 @@ export class SDK {
       transactionBlock: txb,
       sender: ZERO_ADDRESS,
     });
-    const result = getReturnValuesFromInspectResults(response);
+    const resultArray = getReturnValuesFromInspectResults(response);
 
-    if (!result) return null;
+    if (!resultArray || !resultArray.length) return null;
 
-    return bcs.de(result[1], Uint8Array.from(result[0])) as [
-      number,
-      number,
-      number,
-    ];
+    const result = resultArray[0];
+    const result1 = resultArray[1];
+    const result2 = resultArray[2];
+
+    return [
+      bcs.de(result[1], Uint8Array.from(result[0])),
+      bcs.de(result1[1], Uint8Array.from(result1[0])),
+      bcs.de(result2[1], Uint8Array.from(result2[0])),
+    ] as [number, number, number];
   }
 
   /**
@@ -479,11 +487,17 @@ export class SDK {
       sender: ZERO_ADDRESS,
     });
 
-    const result = getReturnValuesFromInspectResults(response);
+    const resultArray = getReturnValuesFromInspectResults(response);
 
-    if (!result) return null;
+    if (!resultArray || !resultArray.length) return null;
 
-    return bcs.de(result[1], Uint8Array.from(result[0])) as [number, number];
+    const result = resultArray[0];
+    const result1 = resultArray[1];
+
+    return [
+      bcs.de(result[1], Uint8Array.from(result[0])),
+      bcs.de(result[1], Uint8Array.from(result1[0])),
+    ] as [number, number];
   }
 
   /**

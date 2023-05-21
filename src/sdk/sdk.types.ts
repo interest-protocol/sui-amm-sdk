@@ -30,7 +30,7 @@ export interface SwapArgs {
   deadline?: string;
 }
 
-export interface GetCoinOutAmountArgs {
+export interface QuoteSwapArgs {
   coinInAmount: string;
   coinInType: Address;
   coinOutType: Address;
@@ -51,6 +51,14 @@ export interface AddLiquidityArgs {
   lpCoinMinOut?: string;
 }
 
+export interface QuoteAddLiquidityArgs {
+  stable: boolean;
+  coin0Type: string;
+  coin1Type: string;
+  coin0Amount: string;
+  coin1Amount: string;
+}
+
 export interface RemoveLiquidityArgs {
   txb: TransactionBlock;
   stable: boolean;
@@ -62,12 +70,9 @@ export interface RemoveLiquidityArgs {
   coinBMinAmount: string;
 }
 
-export interface GetRemoveLiquidityCoinsAmountsOutArgs {
-  txb: TransactionBlock;
+export interface QuoteRemoveLiquidityArgs {
   stable: boolean;
-  coinAType: string;
-  coinBType: string;
-  lpCoinList: MakeMoveVecTransaction['objects'][number][];
+  coin0Type: string;
+  coin1Type: string;
   lpCoinAmount: string;
-  account?: string;
 }

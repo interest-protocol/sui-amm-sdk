@@ -35,8 +35,8 @@ export const OBJECT_RECORD = {
       '0xb77710e571f53eb4dfa1fe5fb365505ecd560a484f57e6a8a55b1c4a84c9d3c4',
     FAUCET_USDT_STORAGE:
       '0xd4133d334c351611a05428b4b9b56a18abc67492dc5b7d5feae4a8ea6cf36d89',
-    DEX_GET_AMOUNT_INTERFACE_PACKAGE_ID:
-      '0xfaaa94cd3a6fee5f416b0d551379a2043063b77f0492b461a1a0157b838abd16',
+    DEX_QUOTE_PACKAGE_ID:
+      '0xfe3d9d1fbc06b915e9a546b9d38a3e622850fe77cb198f3d8f822f919365a8b9',
   },
   [Network.TESTNET]: {
     IPX_PACKAGE_ID:
@@ -65,8 +65,8 @@ export const OBJECT_RECORD = {
       '0xa08c1f969d36beba75637f771f89943856f69cef8be540a867e80ec6047ded1e',
     FAUCET_USDT_STORAGE:
       '0xf80e06b35dad3ba0094db29ae89488b81a68e1e9746fad5c98c3dc67c4a0827c',
-    DEX_GET_AMOUNT_INTERFACE_PACKAGE_ID:
-      '0xfaaa94cd3a6fee5f416b0d551379a2043063b77f0492b461a1a0157b838abd16',
+    DEX_QUOTE_PACKAGE_ID:
+      '0xfe3d9d1fbc06b915e9a546b9d38a3e622850fe77cb198f3d8f822f919365a8b9',
   },
   [Network.MAINNET]: {
     IPX_PACKAGE_ID:
@@ -96,8 +96,8 @@ export const OBJECT_RECORD = {
       '0x0000000000000000000000000000000000000000000000000000000000000000',
     FAUCET_USDT_STORAGE:
       '0x0000000000000000000000000000000000000000000000000000000000000000',
-    DEX_GET_AMOUNT_INTERFACE_PACKAGE_ID:
-      '0xeea07b18244ad47ce6da0490c526919b6643d4023f3147b0875734d9019ac1f6',
+    DEX_QUOTE_PACKAGE_ID:
+      '0xd3f17406b17aa93f634e486a76938532e49f04345e59c3d250c9ebce79a0263f',
   },
 };
 
@@ -109,10 +109,10 @@ export enum DexFunctions {
 }
 
 export const DEX_FUNCTION_TO_GET_AMOUNT_FUNCTION_MAP = {
-  [DexFunctions.SwapX]: 'get_swap_token_x_amount_out',
-  [DexFunctions.SwapY]: 'get_swap_token_y_amount_out',
-  [DexFunctions.OneHopSwap]: 'get_one_hop_swap_amount_out',
-  [DexFunctions.TwoHopSwap]: 'get_two_hop_swap_amount_out',
+  [DexFunctions.SwapX]: 'quote_swap_x',
+  [DexFunctions.SwapY]: 'quote_swap_y',
+  [DexFunctions.OneHopSwap]: 'quote_one_hop_swap',
+  [DexFunctions.TwoHopSwap]: 'quote_two_hop_swap',
 };
 
 export interface Pool {

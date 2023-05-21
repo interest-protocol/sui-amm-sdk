@@ -1,4 +1,4 @@
-import { DevInspectResults, JsonRpcProvider } from '@mysten/sui.js';
+import { JsonRpcProvider } from '@mysten/sui.js';
 import { DynamicFieldPage } from '@mysten/sui.js/src/types/dynamic_fields';
 
 import { DexFunctions, Network } from '@/constants';
@@ -26,11 +26,4 @@ export interface GetAllDynamicFieldsInternalArgs {
   data: DynamicFieldPage['data'];
   parentId: string;
   provider: JsonRpcProvider;
-}
-
-export interface GetRemoveLiquidityAmountsFromDevInspectArgs {
-  packageId: string;
-  results: DevInspectResults | undefined;
-  coinAType: string;
-  coinBType: string;
 }

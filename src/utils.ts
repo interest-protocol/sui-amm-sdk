@@ -16,7 +16,6 @@ import {
   DexMarket,
   FindMarketArgs,
   GetAllDynamicFieldsInternalArgs,
-  GetRemoveLiquidityAmountsFromDevInspectArgs,
   SwapPathObject,
 } from './types';
 
@@ -208,29 +207,5 @@ export const processPool = (data: undefined | SuiObjectResponse): Pool => {
     token0Type,
     token1Type,
     stable,
-  };
-};
-
-export const getRemoveLiquidityAmountsFromDevInspect = ({
-  packageId,
-  coinAType,
-  coinBType,
-  results,
-}: GetRemoveLiquidityAmountsFromDevInspectArgs) => {
-  if (!results) return null;
-  const events = results.events;
-
-  if (!events || !events.length) return null;
-
-  const firstEvent = events[0];
-
-  if (firstEvent.packageId !== packageId) return null;
-
-  const coinAKey = coinAType > coinBType ? 'coin_y_out' : 'coin_x_out';
-  const coinBKey = coinAType > coinBType ? 'coin_x_out' : 'coin_y_out';
-
-  return {
-    [coinAType]: pathOr('0', ['parsedJson', coinAKey], firstEvent),
-    [coinBType]: pathOr('0', ['parsedJson', coinBKey], firstEvent),
   };
 };

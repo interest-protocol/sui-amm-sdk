@@ -21,7 +21,6 @@ import {
   findMarket,
   getAllDynamicFields,
   getCoinsFromPoolType,
-  getRemoveLiquidityAmountsFromDevInspect,
   getReturnValuesFromInspectResults,
   parseRawDEXMarkets,
   processPool,
@@ -32,8 +31,9 @@ import {
   AddLiquidityArgs,
   CreatePoolArgs,
   FindPoolIdArgs,
-  GetCoinOutAmountArgs,
-  GetRemoveLiquidityCoinsAmountsOutArgs,
+  QuoteAddLiquidityArgs,
+  QuoteRemoveLiquidityArgs,
+  QuoteSwapArgs,
   RemoveLiquidityArgs,
   SwapArgs,
 } from './sdk.types';
@@ -223,13 +223,13 @@ export class SDK {
    * @param useCache It defaults to false. If it is false, we will first fetch the latest pools data. If not, we will use a cache.
    * @param dexMarkets An object of Pools
    */
-  public async getSwapCoinOutAmount({
+  public async quoteSwap({
     coinInAmount,
     coinInType,
     coinOutType,
     useCache = false,
     dexMarkets,
-  }: GetCoinOutAmountArgs): Promise<number> {
+  }: QuoteSwapArgs): Promise<number> {
     invariant(+coinInAmount > 0, 'Cannot add coinAAmount');
 
     const data = dexMarkets
@@ -255,9 +255,7 @@ export class SDK {
     // no hop swap
     if (!firstSwapObject.baseTokens.length) {
       txb.moveCall({
-        target: `${
-          objects.DEX_GET_AMOUNT_INTERFACE_PACKAGE_ID
-        }::dex_get_amount_interface::${
+        target: `${objects.DEX_QUOTE_PACKAGE_ID}::dex_quote::${
           DEX_FUNCTION_TO_GET_AMOUNT_FUNCTION_MAP[firstSwapObject.functionName]
         }`,
         typeArguments: firstSwapObject.typeArgs,
@@ -280,9 +278,7 @@ export class SDK {
 
     // One-hop Swap
     txb.moveCall({
-      target: `${
-        objects.DEX_GET_AMOUNT_INTERFACE_PACKAGE_ID
-      }::dex_get_amount_interface::${
+      target: `${objects.DEX_QUOTE_PACKAGE_ID}::dex_quote::${
         DEX_FUNCTION_TO_GET_AMOUNT_FUNCTION_MAP[firstSwapObject.functionName]
       }`,
       typeArguments: firstSwapObject.typeArgs,
@@ -351,6 +347,59 @@ export class SDK {
   }
 
   /**
+   * @description It allows the caller to calculate how many LpCoins he will receive. The coins must be ordered.
+   * @param coin0Type The A type in Pool<A, B>
+   * @param coin1Type The B type in Pool<A, B>
+   * @param coin0Amount The amount of Coin<A> being deposited
+   * @param coin1Amount The amount of Coin<B> being deposited
+   * @param stable It indicates if the caller wishes to deposit in a Volatile or Stable Pool
+   */
+  public async quoteAddLiquidity({
+    coin0Type,
+    coin1Type,
+    coin0Amount,
+    coin1Amount,
+    stable,
+  }: QuoteAddLiquidityArgs): Promise<[number, number, number] | null> {
+    invariant(!isNaN(+coin0Amount), 'coin0Amount must be a number');
+    invariant(!isNaN(+coin1Amount), 'coin1Amount must be a number');
+    invariant(+coin0Amount > 0, 'You cannot add 0 amount of coin0Amount');
+    invariant(+coin1Amount > 0, 'You cannot add 0 amount of coin1Amount');
+
+    const objects = OBJECT_RECORD[this.network];
+
+    const txb = new TransactionBlock();
+
+    txb.moveCall({
+      target: `${objects.DEX_QUOTE_PACKAGE_ID}::dex_quote::quote_add_liquidity`,
+      typeArguments: [
+        stable ? STABLE[this.network] : VOLATILE[this.network],
+        coin0Type,
+        coin1Type,
+      ],
+      arguments: [
+        txb.object(objects.DEX_CORE_STORAGE),
+        txb.pure(coin0Amount),
+        txb.pure(coin1Amount),
+      ],
+    });
+
+    const response = await this.provider.devInspectTransactionBlock({
+      transactionBlock: txb,
+      sender: ZERO_ADDRESS,
+    });
+    const result = getReturnValuesFromInspectResults(response);
+
+    if (!result) return null;
+
+    return bcs.de(result[1], Uint8Array.from(result[0])) as [
+      number,
+      number,
+      number,
+    ];
+  }
+
+  /**
    * @description It removes liquidity from a pool. Please note that the types do not need to be ordered.
    * @param txb The {TransactionBlock} class to chain
    * @param stable It indicates if the user wishes to remove from a stable or volatile pool
@@ -396,59 +445,45 @@ export class SDK {
   }
 
   /**
-   * @description It returns to the user an object with the coin types as key and the amount of tokens they will receive. Note that the types do not need to be ordered
-   * @param txb The {TransactionBlock} class to chain
+   * @description It returns the amount of underlying Coins a user will receive by burning LPCoins. The coins must be ordered.
+   * @param coin0Type It represents one of the Coin types from a pool
+   * @param coin1Type It represents the other Coin type from a pool
    * @param stable It indicates if it is withdrawing from a stable or volatile pool
-   * @param coinAType It represents one of the Coin types from a pool
-   * @param coinBType It represents the other Coin type from a pool
-   * @param lpCoinList An array of Lp Coin objects of LPCoin<CoinAType, CoinBType>.
    * @param lpCoinAmount The minimum amount of Lp Coin objects of LPCoin<CoinAType, CoinBType> to receive
-   * @param account The sender of the transaction
    */
-  public async getRemoveLiquidityCoinsAmountsOut({
-    txb,
+  public async quoteRemoveLiquidity({
+    coin0Type,
+    coin1Type,
     stable,
-    coinAType,
-    coinBType,
-    lpCoinList,
     lpCoinAmount,
-    account = ZERO_ADDRESS,
-  }: GetRemoveLiquidityCoinsAmountsOutArgs) {
+  }: QuoteRemoveLiquidityArgs): Promise<null | [number, number]> {
+    invariant(!isNaN(+lpCoinAmount), 'lpCoinAmount must be a number');
+    invariant(+lpCoinAmount > 0, 'You cannot burn 0 amount of lpCoinAmount');
+
+    const txb = new TransactionBlock();
+
     const objects = OBJECT_RECORD[this.network];
 
     txb.moveCall({
-      target: `${objects.DEX_PACKAGE_ID}::interface::remove_liquidity`,
+      target: `${objects.DEX_QUOTE_PACKAGE_ID}::dex_quote::quote_remove_liquidity`,
       typeArguments: [
         stable ? STABLE[this.network] : VOLATILE[this.network],
-        coinAType,
-        coinBType,
+        coin0Type,
+        coin1Type,
       ],
-      arguments: [
-        txb.object(objects.DEX_CORE_STORAGE),
-        txb.object(SUI_CLOCK_OBJECT_ID),
-        txb.makeMoveVec({
-          objects: lpCoinList,
-        }),
-        txb.pure(lpCoinAmount),
-        txb.pure('0'),
-        txb.pure('0'),
-      ],
+      arguments: [txb.object(objects.DEX_CORE_STORAGE), txb.pure(lpCoinAmount)],
     });
 
-    const data = await this.provider.devInspectTransactionBlock({
+    const response = await this.provider.devInspectTransactionBlock({
       transactionBlock: txb,
-      sender: account,
+      sender: ZERO_ADDRESS,
     });
 
-    return {
-      data,
-      parsedData: getRemoveLiquidityAmountsFromDevInspect({
-        packageId: objects.DEX_PACKAGE_ID,
-        results: data,
-        coinAType,
-        coinBType,
-      }),
-    };
+    const result = getReturnValuesFromInspectResults(response);
+
+    if (!result) return null;
+
+    return bcs.de(result[1], Uint8Array.from(result[0])) as [number, number];
   }
 
   /**

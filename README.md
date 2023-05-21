@@ -4,16 +4,22 @@
 
 ## Functionality
 
-- swap
-- findPoolId
-- createPool
+- [findPoolId](https://docs.interestprotocol.com/developers/sdk#findpoolid)
+- [createVolatilePool](https://docs.interestprotocol.com/developers/sdk#createvolatilepool)
+- [swap](https://docs.interestprotocol.com/developers/sdk#swap)
+- [quoteSwap](https://docs.interestprotocol.com/developers/sdk#quoteswap)
+- [addLiquidity](https://docs.interestprotocol.com/developers/sdk#addliquidity)
+- [quoteAddLiquidity](https://docs.interestprotocol.com/developers/sdk#quoteaddliquidity)
+- [removeLiquidity](https://docs.interestprotocol.com/developers/sdk#removeliquidity)
+- [quoteRemoveLiquidity](https://docs.interestprotocol.com/developers/sdk#quoteremoveliquidity)
+- [getLatestDEXMarkets](https://docs.interestprotocol.com/developers/sdk#getlatestdexmarkets)
 
 ## Install
 
 Install the project dependencies with yarn or npm
 
 ```bash
-  yarn add @interest-protocol/sui-sdk
+  yarn add @interest-protocol/sui-sdk@latest
 ```
 
 ## Requirements
@@ -27,6 +33,9 @@ Verify your Node.js version with
 ```bash
   node -v 
 ```
+## Documentation
+
+https://docs.interestprotocol.com/developers/sui/sdk
 
 ## Code Style
 
@@ -40,10 +49,6 @@ You must install it in your Editor text
 - [Typescript](https://typescriptlang.org)
 - [Ramda](https://ramdajs.com/)
 - [@mysten/sui.js](https://www.npmjs.com/package/@mysten/sui.js)
-
-## Documentation
-
-https://docs.interestprotocol.com/developers/sui/sdk
 
 ## Contributing
 

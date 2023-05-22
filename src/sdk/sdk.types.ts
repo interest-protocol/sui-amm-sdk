@@ -5,6 +5,7 @@ import { Address, DexMarket } from '@/types';
 export interface FindPoolIdArgs {
   tokenAType: Address;
   tokenBType: Address;
+  stable: boolean;
   account?: Address;
 }
 

@@ -5,7 +5,7 @@ import {
   TransactionBlock,
 } from '@mysten/sui.js';
 import { bcs, SUI_CLOCK_OBJECT_ID } from '@mysten/sui.js';
-import { pathOr } from 'ramda';
+import { pathOr, propOr } from 'ramda';
 import invariant from 'tiny-invariant';
 
 import {
@@ -59,6 +59,7 @@ export class SDK {
   public async findPoolId({
     tokenAType,
     tokenBType,
+    stable,
     account = ZERO_ADDRESS,
   }: FindPoolIdArgs): Promise<Address | null> {
     invariant(isValidSuiAddress(account), 'Invalid Sui Address');
@@ -68,7 +69,11 @@ export class SDK {
 
     txb.moveCall({
       target: `${objects.DEX_PACKAGE_ID}::interface::get_pool_id`,
-      typeArguments: [VOLATILE[this.network], tokenAType, tokenBType],
+      typeArguments: [
+        stable ? STABLE[this.network] : VOLATILE[this.network],
+        tokenAType,
+        tokenBType,
+      ],
       arguments: [txb.object(objects.DEX_CORE_STORAGE)],
     });
 
@@ -125,6 +130,63 @@ export class SDK {
         }),
         txb.pure(coinAAmount),
         txb.pure(coinBAmount),
+      ],
+    });
+
+    return txb;
+  }
+
+  /**
+   * @description It returns a {TransactionBlock} to be called
+   * @param txb The {TransactionBlock} that will be returned
+   * @param coinA An ObjectTransactionArgument of Coin0 on Pool<0,1>
+   * @param coinB An ObjectTransactionArgument of Coin1 on Pool<0,1>
+   * @param coinAAmount The desired value to add for coin0
+   * @param coinBAmount The desired value to add for coin1
+   * @param coinAType The type of Coin0
+   * @param coinBType The type of Coin1
+   * @return txb {TransactionBlock}
+   */
+  public async createStablePool({
+    txb,
+    coinAList,
+    coinBList,
+    coinAAmount,
+    coinBAmount,
+    coinAType,
+    coinBType,
+  }: CreatePoolArgs): Promise<TransactionBlock> {
+    invariant(+coinAAmount > 0, 'Cannot add coinAAmount');
+    invariant(+coinBAmount > 0, 'Cannot add coinBAmount');
+
+    const objects = OBJECT_RECORD[this.network];
+
+    const coinAMetadata = await this.provider.getCoinMetadata({
+      coinType: coinAType,
+    });
+    const coinBMetadata = await this.provider.getCoinMetadata({
+      coinType: coinAType,
+    });
+
+    invariant(!!coinAMetadata, 'coinAType does not have a metadata');
+    invariant(!!coinBMetadata, 'coinBType does not have a metadata');
+
+    txb.moveCall({
+      target: `${objects.DEX_PACKAGE_ID}::interface::create_s_pool`,
+      typeArguments: [coinAType, coinBType],
+      arguments: [
+        txb.object(objects.DEX_CORE_STORAGE),
+        txb.object(SUI_CLOCK_OBJECT_ID),
+        txb.makeMoveVec({
+          objects: coinAList,
+        }),
+        txb.makeMoveVec({
+          objects: coinBList,
+        }),
+        txb.pure(coinAAmount),
+        txb.pure(coinBAmount),
+        txb.object(propOr('', 'id', coinAMetadata)),
+        txb.object(propOr('', 'id', coinBMetadata)),
       ],
     });
 

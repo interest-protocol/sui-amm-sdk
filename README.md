@@ -6,6 +6,7 @@
 
 - [findPoolId](https://docs.interestprotocol.com/developers/sdk#findpoolid)
 - [createVolatilePool](https://docs.interestprotocol.com/developers/sdk#createvolatilepool)
+- [createStablePool](https://docs.interestprotocol.com/developers/sdk#createstablepool)
 - [swap](https://docs.interestprotocol.com/developers/sdk#swap)
 - [quoteSwap](https://docs.interestprotocol.com/developers/sdk#quoteswap)
 - [addLiquidity](https://docs.interestprotocol.com/developers/sdk#addliquidity)

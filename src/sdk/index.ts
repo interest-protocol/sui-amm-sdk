@@ -558,7 +558,7 @@ export class SDK {
 
     return [
       bcs.de(result[1], Uint8Array.from(result[0])),
-      bcs.de(result[1], Uint8Array.from(result1[0])),
+      bcs.de(result1[1], Uint8Array.from(result1[0])),
     ] as [number, number];
   }
 

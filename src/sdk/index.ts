@@ -15,9 +15,10 @@ import {
   Pool,
   ZERO_ADDRESS,
 } from '@/constants';
-import { STABLE, VOLATILE } from '@/constants/coins';
-import { Address, DexMarket } from '@/types';
+import { DEX_BASE_TOKEN_ARRAY, STABLE, VOLATILE } from '@/constants/coins';
+import { Address, DexMarket, SwapPathObject } from '@/types';
 import {
+  findAllMarket,
   findMarket,
   getAllDynamicFields,
   getCoinsFromPoolType,
@@ -34,6 +35,7 @@ import {
   QuoteAddLiquidityArgs,
   QuoteRemoveLiquidityArgs,
   QuoteSwapArgs,
+  QuoteSwapReturn,
   RemoveLiquidityArgs,
   SwapArgs,
 } from './sdk.types';
@@ -282,84 +284,82 @@ export class SDK {
    * @param coinInAmount The amount of the coin being sold
    * @param coinInType The type of the coin being sold
    * @param coinOutType The type of the coin being bought
+   * @param baseTokens An array of base coins to use for the one hop swap
    * @param useCache It defaults to false. If it is false, we will first fetch the latest pools data. If not, we will use a cache.
-   * @param dexMarkets An object of Pools
+   * @param markets An object of Pools
    */
   public async quoteSwap({
     coinInAmount,
     coinInType,
     coinOutType,
+    baseTokens,
     useCache = false,
-    dexMarkets,
-  }: QuoteSwapArgs): Promise<number> {
-    invariant(+coinInAmount > 0, 'Cannot add coinAAmount');
-
-    const data = dexMarkets
-      ? dexMarkets
-      : useCache
-      ? this.#POOLS
-      : await this.getLatestDEXMarkets();
-
-    const path = findMarket({
-      data,
-      network: this.network,
-      coinInType,
-      coinOutType,
-    });
-
-    invariant(path.length > 0, 'No Market for those coins');
-
-    const firstSwapObject = path[0];
-
+    markets,
+  }: QuoteSwapArgs): Promise<QuoteSwapReturn | null> {
     const objects = OBJECT_RECORD[this.network];
 
-    const txb = new TransactionBlock();
-    // no hop swap
-    if (!firstSwapObject.baseTokens.length) {
-      txb.moveCall({
-        target: `${objects.DEX_QUOTE_PACKAGE_ID}::dex_quote::${
-          DEX_FUNCTION_TO_GET_AMOUNT_FUNCTION_MAP[firstSwapObject.functionName]
-        }`,
-        typeArguments: firstSwapObject.typeArgs,
-        arguments: [
-          txb.object(objects.DEX_CORE_STORAGE),
-          txb.pure(coinInAmount),
-        ],
-      });
-
-      const response = await this.provider.devInspectTransactionBlock({
-        transactionBlock: txb,
-        sender: ZERO_ADDRESS,
-      });
-      const resultArray = getReturnValuesFromInspectResults(response);
-
-      if (!resultArray || !resultArray.length) return 0;
-
-      const result = resultArray[0];
-
-      return bcs.de(result[1], Uint8Array.from(result[0])) as number;
-    }
-
-    // One-hop Swap
-    txb.moveCall({
-      target: `${objects.DEX_QUOTE_PACKAGE_ID}::dex_quote::${
-        DEX_FUNCTION_TO_GET_AMOUNT_FUNCTION_MAP[firstSwapObject.functionName]
-      }`,
-      typeArguments: firstSwapObject.typeArgs,
-      arguments: [txb.object(objects.DEX_CORE_STORAGE), txb.pure(coinInAmount)],
+    const allMarkets = findAllMarket({
+      markets: markets
+        ? markets
+        : useCache
+        ? this.#POOLS
+        : await this.getLatestDEXMarkets(),
+      coinInType,
+      coinOutType,
+      baseTokens: baseTokens ? baseTokens : DEX_BASE_TOKEN_ARRAY[this.network],
     });
 
-    const response = await this.provider.devInspectTransactionBlock({
-      transactionBlock: txb,
-      sender: ZERO_ADDRESS,
-    });
-    const resultArray = getReturnValuesFromInspectResults(response);
+    if (!allMarkets.length) return null;
 
-    if (!resultArray || !resultArray.length) return 0;
+    const promises = allMarkets.map(
+      ({ functionName, typeArgs, baseTokens }) => {
+        const txb = new TransactionBlock();
 
-    const result = resultArray[0];
+        if (!baseTokens.length) {
+          txb.moveCall({
+            target: `${objects.DEX_QUOTE_PACKAGE_ID}::dex_quote::${DEX_FUNCTION_TO_GET_AMOUNT_FUNCTION_MAP[functionName]}`,
+            typeArguments: typeArgs,
+            arguments: [
+              txb.object(objects.DEX_CORE_STORAGE),
+              txb.pure(coinInAmount),
+            ],
+          });
+        } else {
+          // One-hop Swap
+          txb.moveCall({
+            target: `${objects.DEX_QUOTE_PACKAGE_ID}::dex_quote::${DEX_FUNCTION_TO_GET_AMOUNT_FUNCTION_MAP[functionName]}`,
+            typeArguments: typeArgs,
+            arguments: [
+              txb.object(objects.DEX_CORE_STORAGE),
+              txb.pure(coinInAmount),
+            ],
+          });
+        }
 
-    return bcs.de(result[1], Uint8Array.from(result[0])) as number;
+        return this.provider.devInspectTransactionBlock({
+          transactionBlock: txb,
+          sender: ZERO_ADDRESS,
+        });
+      },
+    );
+
+    const responseArray = await Promise.all(promises);
+
+    return responseArray
+      .map(response => {
+        const resultArray = getReturnValuesFromInspectResults(response);
+
+        if (!resultArray || !resultArray.length) return 0;
+
+        const result = resultArray[0];
+
+        return bcs.de(result[1], Uint8Array.from(result[0])) as number;
+      })
+      .reduce(
+        (acc, amount, index) =>
+          amount > acc.amount ? { swapObject: allMarkets[index], amount } : acc,
+        { swapObject: {} as SwapPathObject, amount: 0 },
+      );
   }
 
   /**

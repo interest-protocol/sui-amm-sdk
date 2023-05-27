@@ -14,6 +14,7 @@ import { DEFAULT_POOL, DexFunctions, Pool } from '@/constants';
 import { DEX_BASE_TOKEN_ARRAY } from './constants/coins';
 import {
   DexMarket,
+  FindAllMarket,
   FindMarketArgs,
   GetAllDynamicFieldsInternalArgs,
   SwapPathObject,
@@ -47,6 +48,64 @@ export const getCoinsFromPoolType = (poolType: string) => {
 
 export const addCoinTypeToTokenType = (x: string): string =>
   `0x2::coin::Coin<${x}>`;
+
+export const findAllMarket = ({
+  markets,
+  coinInType,
+  coinOutType,
+  baseTokens,
+}: FindAllMarket): ReadonlyArray<SwapPathObject> => {
+  if (isEmpty(markets)) return [];
+
+  const poolType = pathOr(
+    null,
+    [addCoinTypeToTokenType(coinInType), addCoinTypeToTokenType(coinOutType)],
+    markets,
+  );
+
+  const acc = [] as Array<SwapPathObject>;
+
+  // No Hop Swap X -> Y
+  if (poolType) {
+    const { coinXType, coinYType } = getCoinsFromPoolType(poolType);
+
+    acc.push({
+      baseTokens: [],
+      coinInType,
+      coinOutType,
+      functionName:
+        coinInType === coinXType ? DexFunctions.SwapX : DexFunctions.SwapY,
+      typeArgs: [coinXType, coinYType],
+    });
+  }
+
+  // One Hop Swap
+  return baseTokens.reduce((acc, element) => {
+    const firstPool = pathOr(
+      null,
+      [addCoinTypeToTokenType(coinInType), addCoinTypeToTokenType(element)],
+      markets,
+    );
+    const secondPool = pathOr(
+      null,
+      [addCoinTypeToTokenType(coinOutType), addCoinTypeToTokenType(element)],
+      markets,
+    );
+
+    if (firstPool && secondPool)
+      return acc.concat([
+        {
+          baseTokens: [element],
+          coinOutType,
+          coinInType,
+          functionName: DexFunctions.OneHopSwap,
+          typeArgs: [coinInType, element, coinOutType],
+        },
+      ]);
+
+    return acc;
+  }, acc);
+};
 
 export const findMarket = ({
   data,

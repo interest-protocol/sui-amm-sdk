@@ -1,6 +1,6 @@
 import { MakeMoveVecTransaction, TransactionBlock } from '@mysten/sui.js';
 
-import { Address, DexMarket } from '@/types';
+import { Address, DexMarket, SwapPathObject } from '@/types';
 
 export interface FindPoolIdArgs {
   tokenAType: Address;
@@ -29,15 +29,6 @@ export interface SwapArgs {
   useCache?: boolean;
   dexMarkets?: DexMarket;
   deadline?: string;
-}
-
-export interface QuoteSwapArgs {
-  coinInAmount: string;
-  coinInType: Address;
-  coinOutType: Address;
-  useCache?: boolean;
-  dexMarkets?: DexMarket;
-  account?: string;
 }
 
 export interface AddLiquidityArgs {
@@ -76,4 +67,17 @@ export interface QuoteRemoveLiquidityArgs {
   coin0Type: string;
   coin1Type: string;
   lpCoinAmount: string;
+}
+export interface QuoteSwapArgs {
+  coinInType: string;
+  coinOutType: string;
+  markets?: DexMarket;
+  baseTokens?: ReadonlyArray<string>;
+  useCache?: boolean;
+  coinInAmount?: string;
+}
+
+export interface QuoteSwapReturn {
+  swapObject: SwapPathObject;
+  amount: number;
 }

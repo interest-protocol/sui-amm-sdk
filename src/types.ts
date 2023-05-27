@@ -27,3 +27,10 @@ export interface GetAllDynamicFieldsInternalArgs {
   parentId: string;
   provider: JsonRpcProvider;
 }
+
+export interface FindAllMarket {
+  markets: DexMarket;
+  coinInType: string;
+  coinOutType: string;
+  baseTokens: ReadonlyArray<string>;
+}

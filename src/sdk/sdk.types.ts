@@ -74,7 +74,7 @@ export interface QuoteSwapArgs {
   markets?: DexMarket;
   baseTokens?: ReadonlyArray<string>;
   useCache?: boolean;
-  coinInAmount?: string;
+  coinInAmount: string;
 }
 
 export interface QuoteSwapReturn {

@@ -18,8 +18,7 @@ import {
 import { DEX_BASE_TOKEN_ARRAY, STABLE, VOLATILE } from '@/constants/coins';
 import { Address, DexMarket, SwapPathObject } from '@/types';
 import {
-  findAllMarket,
-  findMarket,
+  findAllMarkets,
   getAllDynamicFields,
   getCoinsFromPoolType,
   getReturnValuesFromInspectResults,
@@ -219,32 +218,30 @@ export class SDK {
   }: SwapArgs): Promise<TransactionBlock> {
     invariant(+coinInAmount > 0, 'Cannot add coinAAmount');
 
-    const data = dexMarkets
-      ? dexMarkets
-      : useCache
-      ? this.#POOLS
-      : await this.getLatestDEXMarkets();
-
-    const path = findMarket({
-      data,
-      network: this.network,
+    const quoteSwapData = await this.quoteSwap({
+      coinInAmount,
       coinInType,
       coinOutType,
+      markets: dexMarkets
+        ? dexMarkets
+        : useCache
+        ? this.#POOLS
+        : await this.getLatestDEXMarkets(),
     });
 
-    invariant(path.length > 0, 'No Market for those coins');
-
-    const firstSwapObject = path[0];
+    invariant(!!quoteSwapData, 'No Market for those coins');
 
     const objects = OBJECT_RECORD[this.network];
 
     const nowTime = new Date().getTime();
 
+    const swapObject = quoteSwapData.swapObject;
+
     // no hop swap
-    if (!firstSwapObject.baseTokens.length) {
+    if (!swapObject.baseTokens.length) {
       txb.moveCall({
-        target: `${objects.DEX_PACKAGE_ID}::interface::${firstSwapObject.functionName}`,
-        typeArguments: firstSwapObject.typeArgs,
+        target: `${objects.DEX_PACKAGE_ID}::interface::${swapObject.functionName}`,
+        typeArguments: swapObject.typeArgs,
         arguments: [
           txb.object(objects.DEX_CORE_STORAGE),
           txb.object(SUI_CLOCK_OBJECT_ID),
@@ -262,8 +259,8 @@ export class SDK {
 
     // One-hop Swap
     txb.moveCall({
-      target: `${objects.DEX_PACKAGE_ID}::interface::${firstSwapObject.functionName}`,
-      typeArguments: firstSwapObject.typeArgs,
+      target: `${objects.DEX_PACKAGE_ID}::interface::${swapObject.functionName}`,
+      typeArguments: swapObject.typeArgs,
       arguments: [
         txb.object(objects.DEX_CORE_STORAGE),
         txb.object(SUI_CLOCK_OBJECT_ID),
@@ -298,7 +295,7 @@ export class SDK {
   }: QuoteSwapArgs): Promise<QuoteSwapReturn | null> {
     const objects = OBJECT_RECORD[this.network];
 
-    const allMarkets = findAllMarket({
+    const allMarkets = findAllMarkets({
       markets: markets
         ? markets
         : useCache

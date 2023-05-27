@@ -14,7 +14,7 @@ import { DEFAULT_POOL, DexFunctions, Pool } from '@/constants';
 import { DEX_BASE_TOKEN_ARRAY } from './constants/coins';
 import {
   DexMarket,
-  FindAllMarket,
+  FindAllMarkets,
   FindMarketArgs,
   GetAllDynamicFieldsInternalArgs,
   SwapPathObject,
@@ -49,12 +49,12 @@ export const getCoinsFromPoolType = (poolType: string) => {
 export const addCoinTypeToTokenType = (x: string): string =>
   `0x2::coin::Coin<${x}>`;
 
-export const findAllMarket = ({
+export const findAllMarkets = ({
   markets,
   coinInType,
   coinOutType,
   baseTokens,
-}: FindAllMarket): ReadonlyArray<SwapPathObject> => {
+}: FindAllMarkets): ReadonlyArray<SwapPathObject> => {
   if (isEmpty(markets)) return [];
 
   const poolType = pathOr(

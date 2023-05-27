@@ -28,7 +28,7 @@ export interface GetAllDynamicFieldsInternalArgs {
   provider: JsonRpcProvider;
 }
 
-export interface FindAllMarket {
+export interface FindAllMarkets {
   markets: DexMarket;
   coinInType: string;
   coinOutType: string;

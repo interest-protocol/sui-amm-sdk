@@ -5,6 +5,7 @@ import {
   TransactionBlock,
 } from '@mysten/sui.js';
 import { bcs, SUI_CLOCK_OBJECT_ID } from '@mysten/sui.js';
+import { BigNumber } from 'bignumber.js';
 import { pathOr, propOr } from 'ramda';
 import invariant from 'tiny-invariant';
 
@@ -346,16 +347,18 @@ export class SDK {
       .map(response => {
         const resultArray = getReturnValuesFromInspectResults(response);
 
-        if (!resultArray || !resultArray.length) return 0;
+        if (!resultArray || !resultArray.length) return '0';
 
         const result = resultArray[0];
 
-        return bcs.de(result[1], Uint8Array.from(result[0])) as number;
+        return bcs.de(result[1], Uint8Array.from(result[0])) as string;
       })
       .reduce(
         (acc, amount, index) =>
-          amount > acc.amount ? { swapObject: allMarkets[index], amount } : acc,
-        { swapObject: {} as SwapPathObject, amount: 0 },
+          BigNumber(amount).gt(BigNumber(acc.amount))
+            ? { swapObject: allMarkets[index], amount }
+            : acc,
+        { swapObject: {} as SwapPathObject, amount: '0' },
       );
   }
 
@@ -423,7 +426,7 @@ export class SDK {
     coin0Amount,
     coin1Amount,
     stable,
-  }: QuoteAddLiquidityArgs): Promise<[number, number, number] | null> {
+  }: QuoteAddLiquidityArgs): Promise<[string, string, string] | null> {
     invariant(!isNaN(+coin0Amount), 'coin0Amount must be a number');
     invariant(!isNaN(+coin1Amount), 'coin1Amount must be a number');
     invariant(+coin0Amount > 0, 'You cannot add 0 amount of coin0Amount');
@@ -463,7 +466,7 @@ export class SDK {
       bcs.de(result[1], Uint8Array.from(result[0])),
       bcs.de(result1[1], Uint8Array.from(result1[0])),
       bcs.de(result2[1], Uint8Array.from(result2[0])),
-    ] as [number, number, number];
+    ] as [string, string, string];
   }
 
   /**
@@ -523,7 +526,7 @@ export class SDK {
     coin1Type,
     stable,
     lpCoinAmount,
-  }: QuoteRemoveLiquidityArgs): Promise<null | [number, number]> {
+  }: QuoteRemoveLiquidityArgs): Promise<null | [string, string]> {
     invariant(!isNaN(+lpCoinAmount), 'lpCoinAmount must be a number');
     invariant(+lpCoinAmount > 0, 'You cannot burn 0 amount of lpCoinAmount');
 
@@ -556,7 +559,7 @@ export class SDK {
     return [
       bcs.de(result[1], Uint8Array.from(result[0])),
       bcs.de(result1[1], Uint8Array.from(result1[0])),
-    ] as [number, number];
+    ] as [string, string];
   }
 
   /**

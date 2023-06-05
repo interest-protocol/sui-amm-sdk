@@ -79,5 +79,5 @@ export interface QuoteSwapArgs {
 
 export interface QuoteSwapReturn {
   swapObject: SwapPathObject;
-  amount: number;
+  amount: string;
 }

@@ -5,7 +5,6 @@ import {
   TransactionBlock,
 } from '@mysten/sui.js';
 import { bcs, SUI_CLOCK_OBJECT_ID } from '@mysten/sui.js';
-import { BigNumber } from 'bignumber.js';
 import { pathOr, propOr } from 'ramda';
 import invariant from 'tiny-invariant';
 
@@ -355,7 +354,7 @@ export class SDK {
       })
       .reduce(
         (acc, amount, index) =>
-          BigNumber(amount).gt(BigNumber(acc.amount))
+          BigInt(amount) > BigInt(acc.amount)
             ? { swapObject: allMarkets[index], amount }
             : acc,
         { swapObject: {} as SwapPathObject, amount: '0' },

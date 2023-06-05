@@ -1,6 +1,6 @@
 {
   "name": "@interest-protocol/sui-sdk",
-  "version": "8.0.0",
+  "version": "8.1.0",
   "files": [
     "dist"
   ],
@@ -72,7 +72,6 @@
   "dependencies": {
     "@mysten/bcs": "^0.7.1",
     "@mysten/sui.js": "^0.34.1",
-    "bignumber.js": "^9.1.1",
     "ramda": "^0.28.0",
     "tiny-invariant": "^1.3.1"
   }

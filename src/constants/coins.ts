@@ -158,6 +158,7 @@ export const COIN_TYPE = {
     }::core::LPCoin<${STABLE[Network.TESTNET]}, ${
       TESTNET_NET_BASE_COINS.USDC
     }, ${TESTNET_NET_BASE_COINS.USDT}>`,
+    SUID: '0x02871464ed71b80969b32f2b23c981b085866485ba5368c0f59588fcc0dbce47::suid::SUID'
   },
   [Network.MAINNET]: {
     ...MAINNET_BASE_COINS,

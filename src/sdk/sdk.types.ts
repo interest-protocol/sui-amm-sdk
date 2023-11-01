@@ -1,4 +1,7 @@
-import { MakeMoveVecTransaction, TransactionBlock } from '@mysten/sui.js';
+import {
+  TransactionBlock,
+  TransactionObjectArgument,
+} from '@mysten/sui.js/transactions';
 
 import { Address, DexMarket, SwapPathObject } from '@/types';
 
@@ -10,8 +13,8 @@ export interface FindPoolIdArgs {
 }
 
 export interface CreatePoolArgs {
-  coinAList: MakeMoveVecTransaction['objects'][number][];
-  coinBList: MakeMoveVecTransaction['objects'][number][];
+  coinAList: (TransactionObjectArgument | string)[];
+  coinBList: (TransactionObjectArgument | string)[];
   coinAAmount: string;
   coinBAmount: string;
   coinAType: Address;
@@ -21,7 +24,7 @@ export interface CreatePoolArgs {
 
 export interface SwapArgs {
   txb: TransactionBlock;
-  coinInList: MakeMoveVecTransaction['objects'][number][];
+  coinInList: (TransactionObjectArgument | string)[];
   coinInAmount: string;
   coinOutMinimumAmount: string;
   coinInType: Address;
@@ -36,8 +39,8 @@ export interface AddLiquidityArgs {
   stable: boolean;
   coinAType: string;
   coinBType: string;
-  coinAList: MakeMoveVecTransaction['objects'][number][];
-  coinBList: MakeMoveVecTransaction['objects'][number][];
+  coinAList: (TransactionObjectArgument | string)[];
+  coinBList: (TransactionObjectArgument | string)[];
   coinAAmount: string;
   coinBAmount: string;
   lpCoinMinOut?: string;
@@ -56,7 +59,7 @@ export interface RemoveLiquidityArgs {
   stable: boolean;
   coinAType: string;
   coinBType: string;
-  lpCoinList: MakeMoveVecTransaction['objects'][number][];
+  lpCoinList: (TransactionObjectArgument | string)[];
   lpCoinAmount: string;
   coinAMinAmount: string;
   coinBMinAmount: string;

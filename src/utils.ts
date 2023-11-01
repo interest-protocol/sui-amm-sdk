@@ -1,12 +1,10 @@
 import {
   DevInspectResults,
-  JsonRpcProvider,
-  SuiObjectResponse,
-} from '@mysten/sui.js';
-import {
   DynamicFieldInfo,
   DynamicFieldPage,
-} from '@mysten/sui.js/src/types/dynamic_fields';
+  SuiClient,
+  SuiObjectResponse,
+} from '@mysten/sui.js/client';
 import { head, isEmpty, pathOr, propOr } from 'ramda';
 
 import { DEFAULT_POOL, DexFunctions, Pool } from '@/constants';
@@ -199,9 +197,9 @@ const getAllDynamicFieldsInternal = async ({
   data,
   cursor,
   parentId,
-  provider,
+  suiClient,
 }: GetAllDynamicFieldsInternalArgs): Promise<DynamicFieldPage['data']> => {
-  const newData = await provider.getDynamicFields({
+  const newData = await suiClient.getDynamicFields({
     parentId,
     cursor: cursor,
   });
@@ -214,15 +212,15 @@ const getAllDynamicFieldsInternal = async ({
     data: nextData,
     cursor: newData.nextCursor,
     parentId,
-    provider,
+    suiClient,
   });
 };
 
 export const getAllDynamicFields = async (
-  provider: JsonRpcProvider,
+  suiClient: SuiClient,
   parentId: string,
 ) => {
-  const data = await provider.getDynamicFields({
+  const data = await suiClient.getDynamicFields({
     parentId,
   });
 
@@ -231,7 +229,7 @@ export const getAllDynamicFields = async (
         data: data.data,
         cursor: data.nextCursor,
         parentId,
-        provider,
+        suiClient,
       })
     : data.data;
 };

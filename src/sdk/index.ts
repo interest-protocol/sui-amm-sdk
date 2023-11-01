@@ -1,10 +1,8 @@
 import { toHEX } from '@mysten/bcs';
-import {
-  isValidSuiAddress,
-  JsonRpcProvider,
-  TransactionBlock,
-} from '@mysten/sui.js';
-import { bcs, SUI_CLOCK_OBJECT_ID } from '@mysten/sui.js';
+import { bcs } from '@mysten/sui.js/bcs';
+import { SuiClient } from '@mysten/sui.js/client';
+import { TransactionBlock } from '@mysten/sui.js/transactions';
+import { isValidSuiAddress, SUI_CLOCK_OBJECT_ID } from '@mysten/sui.js/utils';
 import { pathOr, propOr } from 'ramda';
 import invariant from 'tiny-invariant';
 
@@ -43,7 +41,7 @@ export class SDK {
   #POOLS: Record<string, Record<string, string>>;
 
   constructor(
-    public readonly provider: JsonRpcProvider,
+    public readonly suiClient: SuiClient,
     public readonly network: Network,
   ) {
     invariant(Object.values(Network).includes(network), 'Invalid network');
@@ -78,7 +76,7 @@ export class SDK {
       arguments: [txb.object(objects.DEX_CORE_STORAGE)],
     });
 
-    const response = await this.provider.devInspectTransactionBlock({
+    const response = await this.suiClient.devInspectTransactionBlock({
       transactionBlock: txb,
       sender: account || ZERO_ADDRESS,
     });
@@ -162,10 +160,10 @@ export class SDK {
 
     const objects = OBJECT_RECORD[this.network];
 
-    const coinAMetadata = await this.provider.getCoinMetadata({
+    const coinAMetadata = await this.suiClient.getCoinMetadata({
       coinType: coinAType,
     });
-    const coinBMetadata = await this.provider.getCoinMetadata({
+    const coinBMetadata = await this.suiClient.getCoinMetadata({
       coinType: coinAType,
     });
 
@@ -333,7 +331,7 @@ export class SDK {
           });
         }
 
-        return this.provider.devInspectTransactionBlock({
+        return this.suiClient.devInspectTransactionBlock({
           transactionBlock: txb,
           sender: ZERO_ADDRESS,
         });
@@ -449,7 +447,7 @@ export class SDK {
       ],
     });
 
-    const response = await this.provider.devInspectTransactionBlock({
+    const response = await this.suiClient.devInspectTransactionBlock({
       transactionBlock: txb,
       sender: ZERO_ADDRESS,
     });
@@ -543,7 +541,7 @@ export class SDK {
       arguments: [txb.object(objects.DEX_CORE_STORAGE), txb.pure(lpCoinAmount)],
     });
 
-    const response = await this.provider.devInspectTransactionBlock({
+    const response = await this.suiClient.devInspectTransactionBlock({
       transactionBlock: txb,
       sender: ZERO_ADDRESS,
     });
@@ -583,7 +581,7 @@ export class SDK {
    * @param poolObjectId The id of Pool object
    */
   public async getPool(poolObjectId: string): Promise<Pool> {
-    const data = await this.provider.getObject({
+    const data = await this.suiClient.getObject({
       id: poolObjectId,
       options: { showContent: true, showType: true },
     });
@@ -595,7 +593,7 @@ export class SDK {
     const objects = OBJECT_RECORD[this.network];
 
     const poolsDataArray = await getAllDynamicFields(
-      this.provider,
+      this.suiClient,
       objects.DEX_POOLS,
     );
 
